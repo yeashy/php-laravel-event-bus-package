@@ -1,0 +1,32 @@
+version: "3.7"
+services:
+  # https://hub.docker.com/_/rabbitmq
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - published: 15672
+        target: 15672
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  phpunit:
+    build:
+      context: .
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    working_dir: /app
+    environment:
+      APP_SERVICE_NAME: test
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: user
+      RABBITMQ_PASSWORD: password
+    volumes:
+      - ./:/app
+    entrypoint: php ./vendor/bin/phpunit

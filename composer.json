@@ -1,0 +1,45 @@
+{
+  "name": "egal/laravel-event-bus",
+  "description": "The Egal Event Bus SDK for Laravel.",
+  "type": "library",
+  "license": "Apache-2.0",
+  "require": {
+    "php": "^8.1",
+    "ext-json": "*",
+    "ext-pcntl": "*",
+    "laravel/framework": "^9.19",
+    "php-amqplib/php-amqplib": "^v3.2"
+  },
+  "require-dev": {
+    "fakerphp/faker": "^1.21",
+    "mockery/mockery": "^1.5.1",
+    "phpunit/phpunit": "^8.5.8|^9.3.3",
+    "slevomat/coding-standard": "^8.4",
+    "squizlabs/php_codesniffer": "^3.7"
+  },
+  "autoload": {
+    "files": [],
+    "psr-4": {
+      "Egal\\LaravelEventBus\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Egal\\LaravelEventBus\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "@php -r \"file_exists('config/event-bus.php') || copy('vendor/egal/laravel-event-bus/stubs/config.stub', 'config/event-bus.php');\"",
+      "@php -r \"file_exists('app/Providers/EventBusProvider.php') || copy('vendor/egal/laravel-event-bus/stubs/service-provier.stub', 'app/Providers/EventBusProvider.php');\""
+    ]
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
