@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Egal\LaravelEventBus\AbstractEventBus;
 use Egal\LaravelEventBus\Event;
-use Egal\LaravelEventBus\EventBus;
 use Egal\LaravelEventBus\Listener;
 use Egal\LaravelEventBus\ServiceProvider;
 
 class EventBusProvider extends ServiceProvider
 {
 
-    protected function registerEvents(EventBus $bus): void
+    protected function registerEvents(AbstractEventBus $bus): void
     {
         // Example:
-        // EventBus::consume(new Listener(
+        // $bus->consume(new Listener(
         //     'some_service.some_model.some_event.may_be_some_word',
-        //     fn(Event $event) => Model::handleSomeEvent($event),
+        //     fn(Event $event) => SomeModel::handleSomeEvent($event),
         // ));
     }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Egal\LaravelEventBus;
 
-use App\Console\Commands\EventBusListenCommand;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
 abstract class ServiceProvider extends BaseServiceProvider
@@ -29,6 +28,6 @@ abstract class ServiceProvider extends BaseServiceProvider
         $this->registerEvents(app(AbstractEventBus::class));
     }
 
-    abstract protected function registerEvents(EventBus $bus): void;
+    abstract protected function registerEvents(AbstractEventBus $bus): void;
 
 }

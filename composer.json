@@ -34,12 +34,6 @@
       "dealerdirect/phpcodesniffer-composer-installer": true
     }
   },
-  "scripts": {
-    "post-install-cmd": [
-      "@php -r \"file_exists('config/event-bus.php') || copy('vendor/egal/laravel-event-bus/stubs/config.stub', 'config/event-bus.php');\"",
-      "@php -r \"file_exists('app/Providers/EventBusProvider.php') || copy('vendor/egal/laravel-event-bus/stubs/service-provier.stub', 'app/Providers/EventBusProvider.php');\""
-    ]
-  },
   "minimum-stability": "dev",
   "prefer-stable": true
 }
