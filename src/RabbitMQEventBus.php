@@ -71,7 +71,9 @@ class RabbitMQEventBus extends AbstractEventBus
     {
         $this->applyBasicConsume();
 
-        $this->channel->wait();
+        while ($this->channel->is_open()) {
+            $this->channel->wait();
+        }
     }
 
     public function consume(Listener $listener): void
