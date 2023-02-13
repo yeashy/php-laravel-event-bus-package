@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Egal\LaravelEventBus;
 
+use Illuminate\Support\Str;
 use PhpAmqpLib\Channel\AbstractChannel;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPConnectionFactory;
+use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
@@ -28,10 +30,15 @@ class RabbitMQEventBus extends AbstractEventBus
 
     private string $exchange;
 
+    private int|float $waitTimeout;
+
+    private string $waitQueue;
+
     public function __construct(array $connection)
     {
         $this->connection = AMQPConnectionFactory::create($connection['config']);
         $this->queue = $connection['queue_name'];
+        $this->waitTimeout = $connection['wait_timeout'];
         $this->exchange = 'amq.' . AMQPExchangeType::FANOUT;
 
         $this->channel = $this->connection->channel();
@@ -112,6 +119,76 @@ class RabbitMQEventBus extends AbstractEventBus
             $this->exchange,
             $event->getKey()
         );
+    }
+
+    /**
+     * @throws EventNotCaughtException
+     */
+    public function wait(string $eventKey): array
+    {
+        $this->upWaitQueue();
+
+        $result = null;
+        $mustDieAt = microtime(true) + $this->waitTimeout;
+
+        $processor = function (AMQPMessage $message) use (&$result, $eventKey) {
+            if ($message->getRoutingKey() === $eventKey) {
+                $result = json_decode($message->getBody(), true);
+            }
+
+            $message->ack();
+        };
+
+        $channel = $this->connection->channel();
+        $channel->basic_qos(
+            prefetch_size: null,
+            prefetch_count: 1,
+            a_global: null,
+        );
+        $channel->basic_consume(
+            queue: $this->waitQueue,
+            no_local: true,
+            exclusive: true,
+            callback: $processor,
+        );
+
+        while (microtime(true) < $mustDieAt && !$result && $channel->is_open()) {
+            try {
+                $channel->wait(timeout: $this->waitTimeout);
+            } catch (AMQPTimeoutException $exception) {
+            }
+        }
+
+        if (!$result) {
+            throw new EventNotCaughtException();
+        }
+
+        $this->downWaitQueue();
+        $channel->close();
+
+        return $result;
+    }
+
+    public function upWaitQueue(): void
+    {
+        if (isset($this->waitQueue)) {
+            return;
+        }
+
+        $this->waitQueue = $queue = Str::uuid()->toString();
+
+        $channel = $this->connection->channel();
+        $channel->queue_declare(
+            queue: $queue,
+            exclusive: true,
+            arguments: new AMQPTable(['x-queue-mode' => 'default']),
+        );
+        $channel->queue_bind($queue, $this->exchange);
+    }
+
+    public function downWaitQueue(): void
+    {
+        unset($this->waitQueue);
     }
 
 }

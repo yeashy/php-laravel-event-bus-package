@@ -13,4 +13,9 @@ abstract class AbstractEventBus
 
     abstract public function dispatch(Event $event): void;
 
+    /**
+     * @throws EventNotCaughtException
+     */
+    abstract public function wait(string $eventKey): array;
+
 }

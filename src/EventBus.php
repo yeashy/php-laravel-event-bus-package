@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static listen(): void;
  * @method static consume(Listener $listener): void;
  * @method static dispatch(Event $event): void;
+ * @method static wait(string $eventKey): array;
  */
 class EventBus extends Facade
 {

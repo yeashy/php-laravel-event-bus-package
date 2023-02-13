@@ -6,6 +6,7 @@ namespace Egal\LaravelEventBus\Tests;
 
 use Egal\LaravelEventBus\Event;
 use Egal\LaravelEventBus\EventBusFactory;
+use Egal\LaravelEventBus\EventNotCaughtException;
 use Egal\LaravelEventBus\Listener;
 use Egal\LaravelEventBus\RabbitMQEventBus;
 use Exception;
@@ -29,6 +30,7 @@ class EventBusTest extends TestCase
         $configs = [];
 
         $config['connections']['rabbitmq']['queue_name'] = $this->faker->uuid;
+        $config['connections']['rabbitmq']['wait_timeout'] = 0.1;
 
         foreach ($config['connections'] as $name => $connection) {
             $cfg = $config;
@@ -42,7 +44,7 @@ class EventBusTest extends TestCase
     /**
      * @dataProvider dataProvider
      */
-    public function test(array $config)
+    public function testListen(array $config)
     {
         $bus = EventBusFactory::create($config);
 
@@ -71,6 +73,41 @@ class EventBusTest extends TestCase
         }
 
         $this->assertEquals(3, $this->getCount());
+    }
+
+    /**
+     * @dataProvider dataProvider
+     */
+    public function testWait(array $config)
+    {
+        $bus = EventBusFactory::create($config);
+
+        if ($bus instanceof RabbitMQEventBus) {
+            $bus->upWaitQueue();
+        }
+
+        $event = new Event(
+            $this->faker->uuid,
+            [$this->faker->colorName => $this->faker->hexColor],
+        );
+
+        $bus->dispatch($event);
+
+        $data = $bus->wait($event->getKey());
+
+        $this->assertEquals($event->getData(), $data);
+    }
+
+    /**
+     * @dataProvider dataProvider
+     */
+    public function testWaitWithoutCaught(array $config)
+    {
+        $bus = EventBusFactory::create($config);
+
+        $this->expectException(EventNotCaughtException::class);
+
+        $bus->wait($this->faker->uuid);
     }
 
 }
