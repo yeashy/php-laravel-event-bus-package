@@ -16,6 +16,16 @@ abstract class AbstractEventBus
     /**
      * @throws EventNotCaughtException
      */
-    abstract public function wait(string $eventKey): array;
+    abstract public function wait(string $key): array;
+
+    public function isKeyMatched(string $listenKey, string $eventKey): bool
+    {
+        return str_contains($listenKey, '*')
+            ? (bool)preg_match(
+                "/^\." . str_replace('*', '[^\.]+', $listenKey) . "\.$/",
+                ".$eventKey."
+            )
+            : $listenKey === $eventKey;
+    }
 
 }

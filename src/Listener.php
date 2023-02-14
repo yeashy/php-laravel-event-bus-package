@@ -12,15 +12,15 @@ class Listener
      */
     protected $callback;
 
-    protected string $eventKey;
+    protected string $key;
 
     public function __construct(
-        string   $eventKey,
+        string   $key,
         callable $callback,
     )
     {
         $this->callback = $callback;
-        $this->eventKey = $eventKey;
+        $this->key = $key;
     }
 
     public function handle(Event $event): void
@@ -30,9 +30,9 @@ class Listener
         $callback($event);
     }
 
-    public function getEventKey(): string
+    public function getKey(): string
     {
-        return $this->eventKey;
+        return $this->key;
     }
 
 }

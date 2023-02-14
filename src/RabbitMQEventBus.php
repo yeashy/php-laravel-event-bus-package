@@ -95,17 +95,18 @@ class RabbitMQEventBus extends AbstractEventBus
             json_decode($message->getBody(), true)
         );
 
-        if ($event->getKey() === $message->getRoutingKey()) {
-            $expectedListeners = array_filter(
-                $this->listeners,
-                fn(Listener $listener) => $listener->getEventKey() === $event->getKey()
-            );
+        $expectedListeners = array_filter(
+            $this->listeners,
+            fn(Listener $listener) => $this->isKeyMatched(
+                $listener->getKey(),
+                $event->getKey()
+            )
+        );
 
-            array_map(
-                fn(Listener $listener) => $listener->handle($event),
-                $expectedListeners,
-            );
-        }
+        array_map(
+            fn(Listener $listener) => $listener->handle($event),
+            $expectedListeners,
+        );
 
         $message->ack();
     }
@@ -124,15 +125,15 @@ class RabbitMQEventBus extends AbstractEventBus
     /**
      * @throws EventNotCaughtException
      */
-    public function wait(string $eventKey): array
+    public function wait(string $key): array
     {
         $this->upWaitQueue();
 
         $result = null;
         $mustDieAt = microtime(true) + $this->waitTimeout;
 
-        $processor = function (AMQPMessage $message) use (&$result, $eventKey) {
-            if ($message->getRoutingKey() === $eventKey) {
+        $processor = function (AMQPMessage $message) use (&$result, $key) {
+            if ($this->isKeyMatched($key, $message->getRoutingKey())) {
                 $result = json_decode($message->getBody(), true);
             }
 
@@ -152,14 +153,18 @@ class RabbitMQEventBus extends AbstractEventBus
             callback: $processor,
         );
 
-        while (microtime(true) < $mustDieAt && !$result && $channel->is_open()) {
+        while (
+            microtime(true) < $mustDieAt
+            && $result === null
+            && $channel->is_open()
+        ) {
             try {
                 $channel->wait(timeout: $this->waitTimeout);
             } catch (AMQPTimeoutException $exception) {
             }
         }
 
-        if (!$result) {
+        if ($result === null) {
             throw new EventNotCaughtException();
         }
 

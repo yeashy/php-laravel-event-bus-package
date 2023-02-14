@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Egal\LaravelEventBus\Tests;
 
+use Egal\LaravelEventBus\AbstractEventBus;
 use Egal\LaravelEventBus\Event;
 use Egal\LaravelEventBus\EventBusFactory;
 use Egal\LaravelEventBus\EventNotCaughtException;
 use Egal\LaravelEventBus\Listener;
 use Egal\LaravelEventBus\RabbitMQEventBus;
 use Exception;
+use Mockery;
 use PHPUnit\Framework\TestCase;
 
 class EventBusTest extends TestCase
@@ -101,6 +103,36 @@ class EventBusTest extends TestCase
     /**
      * @dataProvider dataProvider
      */
+    public function testWaitWithStar(array $config)
+    {
+        $bus = EventBusFactory::create($config);
+
+        if ($bus instanceof RabbitMQEventBus) {
+            $bus->upWaitQueue();
+        }
+
+        $firstWord = $this->faker->uuid;
+
+        $bus->dispatch($q = new Event(
+            $firstWord,
+            $this->faker->hslColorAsArray,
+        ));
+
+        $event = new Event(
+            $firstWord . '.' . $this->faker->uuid,
+            $this->faker->hslColorAsArray,
+        );
+
+        $bus->dispatch($event);
+
+        $data = $bus->wait("$firstWord.*");
+
+        $this->assertEquals($event->getData(), $data);
+    }
+
+    /**
+     * @dataProvider dataProvider
+     */
     public function testWaitWithoutCaught(array $config)
     {
         $bus = EventBusFactory::create($config);
@@ -108,6 +140,33 @@ class EventBusTest extends TestCase
         $this->expectException(EventNotCaughtException::class);
 
         $bus->wait($this->faker->uuid);
+    }
+
+    public function matchingKeysProvider(): array
+    {
+        return [
+            ['foo', 'foo', true],
+            ['foo.foo', 'foo.foo', true],
+            ['foo', 'bar', false],
+            ['foo.bar', 'bar', false],
+            ['foo', 'foo.bar', false],
+            ['bar', 'foo', false],
+            ['foo.*', 'foo.bar', true],
+            ['bar.*', 'bar.foo', true],
+            ['bar.*', 'bar.foo.foo', false],
+            ['bar.*.foo', 'bar.foo.foo', true],
+            ['bar.*.foo', 'bar.foo.bar', false],
+        ];
+    }
+
+    /**
+     * @dataProvider matchingKeysProvider
+     */
+    public function testMatchingKeys(string $needle, string $actual, bool $result)
+    {
+        $bus = Mockery::mock(AbstractEventBus::class)->makePartial();
+
+        $this->assertEquals($result, $bus->isKeyMatched($needle, $actual));
     }
 
 }
