@@ -12,8 +12,10 @@ return [
 
         'rabbitmq' => [
             'driver' => 'rabbitmq',
-            'wait_timeout' => env('EVENT_BUS_WAIT_TIMEOUT', 10),
+            'wait_timeout' => (int)env('EVENT_BUS_WAIT_TIMEOUT', 10),
             'queue_name' => env('APP_SERVICE_NAME', env('EVENT_BUS_QUEUE_NAME')),
+            'max_connection_retries' => (int)env('EVENT_BUS_MAX_CONNECTION_RETRIES', 3),
+            'connection_retries_timeout' => (float)env('EVENT_BUS_CONNECTION_RETRIES_TIMEOUT', 2),
             'config' => (function (): AMQPConnectionConfig {
                 $config = new AMQPConnectionConfig();
                 $config->setHost(env('RABBITMQ_HOST'));
