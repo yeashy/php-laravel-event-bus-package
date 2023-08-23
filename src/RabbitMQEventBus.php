@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Egal\LaravelEventBus;
 
 use Exception;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use PhpAmqpLib\Channel\AbstractChannel;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPConnectionFactory;
+use PhpAmqpLib\Connection\Heartbeat\PCNTLHeartbeatSender;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -39,6 +41,9 @@ class RabbitMQEventBus extends AbstractEventBus
 
     private float $connectionRetriesTimeout;
 
+    /**
+     * @throws ConnectionFailedException
+     */
     public function __construct(array $connection)
     {
         $this->connection = AMQPConnectionFactory::create($connection['config']);
@@ -47,9 +52,16 @@ class RabbitMQEventBus extends AbstractEventBus
         $this->exchange = 'amq.' . AMQPExchangeType::FANOUT;
         $this->maxConnectionRetries = $connection['max_connection_retries'];
         $this->connectionRetriesTimeout = $connection['connection_retries_timeout'];
+
+        $sender = new PCNTLHeartbeatSender($this->connection);
+        $sender->register();
+
         $this->connect();
     }
 
+    /**
+     * @throws ConnectionFailedException
+     */
     public function connect(): void
     {
         $failingStreak = 0;
@@ -85,8 +97,6 @@ class RabbitMQEventBus extends AbstractEventBus
 
     public function applyBasicConsume(): void
     {
-        $this->connect();
-
         $this->channel->basic_qos(
             prefetch_size: 0,
             prefetch_count: 1,
@@ -251,7 +261,8 @@ class RabbitMQEventBus extends AbstractEventBus
 
             $this->channel->exchange_delete($exchangeUUID);
             return true;
-        } catch (Exception) {
+        } catch (Exception $e) {
+            Log::info($e->getMessage());
             return false;
         }
 
