@@ -22,6 +22,7 @@ return [
                 $config->setPort((int)env('RABBITMQ_PORT', 5672));
                 $config->setUser(env('RABBITMQ_USER'));
                 $config->setPassword(env('RABBITMQ_PASSWORD'));
+                $config->setHeartbeat((int)env('RABBITMQ_HEARTBEAT_INTERVAL',5));
                 return $config;
             })(),
         ],
