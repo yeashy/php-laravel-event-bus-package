@@ -7,7 +7,7 @@
     "php": "^8.1",
     "ext-json": "*",
     "ext-pcntl": "*",
-    "laravel/framework": "^9.19",
+    "laravel/framework": "^10.0",
     "php-amqplib/php-amqplib": "^v3.2"
   },
   "require-dev": {
