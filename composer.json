@@ -1,5 +1,5 @@
 {
-  "name": "egal/laravel-event-bus",
+  "name": "yeashy/laravel-event-bus",
   "description": "The Egal Event Bus SDK for Laravel.",
   "type": "library",
   "license": "Apache-2.0",
